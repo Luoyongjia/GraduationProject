@@ -2,10 +2,11 @@ import os
 import shutil
 import random
 import numpy as np
-import matplotlib.pyplot as plt
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from utils import *
+
+import matplotlib.pyplot as plt
 
 
 class CustomDataset(Dataset):
@@ -134,7 +135,7 @@ if __name__ == '__main__':
     vailListPath = buildDatasetListTxt(vailPath)
     testListPath = buildDatasetListTxt(testPath)
     log("Building dataset...")
-    BatchSize = 1
+    BatchSize = 2
     trainData = loadDataset(trainPath, trainListPath, cropSize=128, toRAM=False)
     vailData = loadDataset(vailPath, vailListPath, cropSize=128, toRAM=False)
     testData = loadDataset(testPath, testListPath, cropSize=128, toRAM=False)
@@ -142,3 +143,9 @@ if __name__ == '__main__':
     trainLoader = DataLoader(trainData, batch_size=BatchSize)
     vailLoader = DataLoader(vailData, batch_size=BatchSize)
     testLoader = DataLoader(testData, batch_size=BatchSize)
+
+    # plt.ion()
+    # for i, data in enumerate(vailLoader):
+    #     imgs, name = data
+    #     img = imgs[0].numpy()
+    #     sample(imgs[0], figure_size=(1, 1), img_dim=128)
