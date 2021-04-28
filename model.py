@@ -6,6 +6,7 @@ from baseLayers import *
 
 class mNet(nn.Module):
     def __init__(self, filters=32, activation='lrelu'):
+        super().__init__()
         self.convInput = Conv2D(3, filters)
         # R
         self.convR1 = Conv2D(filters, filters*2)
@@ -32,7 +33,7 @@ class mNet(nn.Module):
 
         # R
         maxpoolR1 = self.maxpoolR1(conv1)
-        convR2 = self.convR2(maxpoolR1)
+        convR2 = self.convR1(maxpoolR1)
         maxpoolR2 = self.maxpoolR2(convR2)
         convR3 = self.convR2(maxpoolR2)
         deConvR1 = self.deConvR1(convR3)
@@ -49,3 +50,5 @@ class mNet(nn.Module):
         concatI1 = self.concatI1(convI1, convR5)
         convI2 = self.convI2(concatI1)
         IOut = self.Iout(convI2)
+
+        return ROut, IOut

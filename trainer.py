@@ -5,10 +5,12 @@ from torch import optim
 import time
 from torch.backends import cudnn
 from torchsummary import summary
+import yaml
 from loss import loss
 from model import mNet
 from dataLoader import *
 from utils import *
+from Parser import Parser
 
 
 class trainer:
@@ -31,7 +33,7 @@ class trainer:
         self.stepsPerEpoch = config['stepsPerEpoch']
         self.printFrequency = config['printFrequency']
         self.saveFrequency = config['saveFrequency']
-        self.weightDir = config['weightDir']
+        self.weightsDir = config['weightsDir']
         self.samplesDir = config['samplesDir']
         self.learningRate = config['learningRate']
         self.noDecom = config['noDecom']
@@ -52,7 +54,7 @@ class trainer:
                 idx = 0
                 hookNumber = -1
                 iterStartTime = time.time()
-                for LLowTensor, LHighTensor, name in enumerate(self.dataloader):
+                for LLowTensor, LHighTensor, name in self.dataloader:
                     LLow = LLowTensor.to(self.device)
                     LHigh = LHighTensor.to(self.device)
                     RLow, ILow = self.model(LLow)
@@ -61,7 +63,7 @@ class trainer:
                         hookNumber = -1
                     loss = self.loss(RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=hookNumber)
                     hookNumber = -1
-                    if idx % 5 == 0:
+                    if idx % 2 == 0:
                         print(f'iter:{iter}_{idx}\t average loss:{loss.item():.6f}')
                     optimizer.zero_grad()
                     loss.backward()
@@ -117,6 +119,17 @@ if __name__ == "__main__":
     criterion = loss()
     model = mNet()
 
+    parser = Parser()
+    args = parser.parse()
+    args.checkpoint = False
+    if args.checkpoint:
+        pretrain = torch.load('./weights/DecomNet.pth')
+        model.load_state_dict(pretrain)
+        print('Model laded from DecomNet.pth')
+
+    with open(args.config) as f:
+        config = yaml.load(f)
+
     trainPath = '/Users/luoyongjia/Research/Data/MIT/train'
     vailPath = '/Users/luoyongjia/Research/Data/MIT/validation'
     testPath = '/Users/luoyongjia/Research/Data/MIT/test'
@@ -125,10 +138,17 @@ if __name__ == "__main__":
     testListPath = buildDatasetListTxt(testPath)
     log("Building dataset...")
     BatchSize = 2
-    trainData = loadDataset(trainPath, trainListPath, cropSize=128, toRAM=False)
-    vailData = loadDataset(vailPath, vailListPath, cropSize=128, toRAM=False)
-    testData = loadDataset(testPath, testListPath, cropSize=128, toRAM=False)
+    trainData = loadDataset(trainPath, trainListPath, cropSize=config['length'], toRAM=True)
+    vailData = loadDataset(vailPath, vailListPath, cropSize=config['length'], toRAM=True, training=False)
+    testData = loadDataset(testPath, testListPath, cropSize=config['length'], toRAM=False, training=False)
 
-    trainLoader = DataLoader(trainData, batch_size=BatchSize)
-    vailLoader = DataLoader(vailData, batch_size=BatchSize)
-    testLoader = DataLoader(testData, batch_size=BatchSize)
+    trainLoader = DataLoader(trainData, batch_size=config['batchSize'], shuffle=True)
+    vailLoader = DataLoader(vailData, batch_size=1)
+    testLoader = DataLoader(testData, batch_size=1)
+
+    trainer = trainer(config, trainLoader, criterion, model, dataloderTest=vailLoader)
+
+    if args.mode == 'train':
+        trainer.train()
+    else:
+        trainer.test()

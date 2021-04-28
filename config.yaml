@@ -1,0 +1,15 @@
+batchSize: 1
+length: 256
+epochs: 2
+stepsPerEpoch: 128
+
+printFrequency: 10
+saveFrequency: 10
+
+samplesDir: './samples'
+weightsDir: './checkpoints'
+
+learningRate: 0.0004
+checkpoints: True
+
+noDecom: False

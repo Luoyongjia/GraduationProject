@@ -104,7 +104,7 @@ class loadDataset(Dataset):
             '''covert PIL Image to numpy array'''
             lowCrop = np.asarray(lowCrop, np.float32).transpose((2, 0, 1)) / 255.
             highCrop = np.asarray(highCrop, np.float32).transpose((2, 0, 1)) / 255.
-            return lowCrop, highCrop
+            return lowCrop, highCrop, name
 
 
 def buildDatasetListTxt(dstDir):
