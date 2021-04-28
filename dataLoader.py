@@ -42,8 +42,12 @@ class loadDataset(Dataset):
         with open(listPath) as f:
             self.pairs = f.readlines()
         self.files = []
+        self.firstLine = True
 
         for pair in self.pairs:
+            if self.firstLine:
+                self.firstLine = False
+                continue
             lowPath, highPath = pair.split(",")
             highPath = highPath[:-1]
             name = lowPath.split("\\")[-1][:-4]
@@ -136,7 +140,7 @@ if __name__ == '__main__':
     testListPath = buildDatasetListTxt(testPath)
     log("Building dataset...")
     BatchSize = 2
-    trainData = loadDataset(trainPath, trainListPath, cropSize=128, toRAM=False)
+    trainData = loadDataset(trainPath, trainListPath, cropSize=128, toRAM=True)
     vailData = loadDataset(vailPath, vailListPath, cropSize=128, toRAM=False)
     testData = loadDataset(testPath, testListPath, cropSize=128, toRAM=False)
 
