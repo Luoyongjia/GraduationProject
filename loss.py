@@ -94,10 +94,10 @@ class loss(nn.Module):
 
         mutualLoss = torch.mean(xLoss + yLoss)
 
-        if hook > -1:
-            featureMapHook(ILow, IHigh, lowGradientx+lowGradienty, highGradientx + highGradienty,
-                    MGradientx + MGradienty, xLoss + yLoss,
-                           path=f'./images/samples-features/mutual_consist_epoch{hook}.png')
+        # if hook > -1:
+        #     featureMapHook(ILow, IHigh, lowGradientx+lowGradienty, highGradientx + highGradienty,
+        #             MGradientx + MGradienty, xLoss + yLoss,
+        #                    path=f'./images/samples-features/mutual_consist_epoch{hook}.png')
         return mutualLoss
 
     def reconstructionError(self, RLow, RHigh, ILow3, IHigh3, LLow, LHigh):

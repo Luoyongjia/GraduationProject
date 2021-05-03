@@ -1,6 +1,6 @@
-batchSize: 1
+batchSize: 4
 length: 256
-epochs: 2
+epochs: 10
 stepsPerEpoch: 128
 
 printFrequency: 10

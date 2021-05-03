@@ -64,16 +64,16 @@ class trainer:
                     loss = self.loss(RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=hookNumber)
                     hookNumber = -1
                     if idx % 2 == 0:
-                        print(f'iter:{iter}_{idx}\t average loss:{loss.item():.6f}')
+                        print(f'iter:{iter + 1}_{idx}\t average loss:{loss.item():.6f}')
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
                     idx += 1
 
-                if iter % self.printFrequency == 0:
-                    self.test(iter, plotDir='./images/DecomSample')
+                if (iter+1) % self.printFrequency == 0:
+                    self.test(iter + 1, plotDir='./images/DecomSample')
 
-                if iter % self.saveFrequency == 0:
+                if (iter+1) % self.saveFrequency == 0:
                     torch.save(self.model.state_dict(), './weights/DecomNet.pth')
                     log("Weight has saved as 'DecomNet.pth'")
 
@@ -97,7 +97,7 @@ class trainer:
             RLow, ILow = self.model(LLow)
             RHigh, IHigh = self.model(LHigh)
 
-            if epoch % (self.printFrequency*10) == 0:
+            if epoch % self.printFrequency == 0:
                 loss = self.loss(RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=hook)
                 hook += 1
                 loss = 0
@@ -115,13 +115,14 @@ class trainer:
             imgDim = ILownp.shape[1:]
             sample(sampleImages, split=splitPoint, figure_size=(2, 3), img_dim=imgDim, path=filepath, num=epoch)
 
+
 if __name__ == "__main__":
     criterion = loss()
     model = mNet()
 
     parser = Parser()
     args = parser.parse()
-    args.checkpoint = False
+    args.checkpoint = True
     if args.checkpoint:
         pretrain = torch.load('./weights/DecomNet.pth')
         model.load_state_dict(pretrain)

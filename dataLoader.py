@@ -63,7 +63,10 @@ class loadDataset(Dataset):
             for i, fileInfo in enumerate(self.files):
                 name = fileInfo["name"]
                 lowImg = Image.open(fileInfo["lr"])
+                lowImg = lowImg.resize((400, 600))
                 highImg = Image.open(fileInfo["hr"])
+                highImg = highImg.resize((400, 600))
+
                 self.data.append({
                     "lr": lowImg,
                     "hr": highImg,
@@ -86,6 +89,8 @@ class loadDataset(Dataset):
             name = dataFiles["name"]
             lowImg = Image.open(dataFiles["lr"])
             highImg = Image.open(dataFiles["hr"])
+            lowImg = lowImg.resize((400, 600))
+            highImg = highImg.resize((400, 600))
 
         '''random crop the inputs'''
         if self.cropSize > 0:
