@@ -4,7 +4,7 @@ import random
 import numpy as np
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
-from utils import *
+from Utils.utils import *
 
 import matplotlib.pyplot as plt
 
@@ -30,6 +30,7 @@ class CustomDataset(Dataset):
         img = Image.open(dataFiles).covert('RGB')
         img = np.array(img, np.float32).transpose((2, 0, 1)) / 255.
         return img, self.name[idx]
+
 
 class loadDataset(Dataset):
     def __init__(self, root, listPath, cropSize=256, toRAM=False, training=True):

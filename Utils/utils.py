@@ -4,6 +4,15 @@ import numpy as np
 import cv2
 
 
+def GCD(a, b):
+    """
+    calculate the greatest common divisor
+    """
+    while b:
+        a, b = b, a % b
+    return a
+
+
 def log(string):
     """
     add the time information before the log

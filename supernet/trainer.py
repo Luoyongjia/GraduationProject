@@ -8,9 +8,10 @@ from torchsummary import summary
 import yaml
 from loss import loss
 from model import mNet
-from dataLoader import *
-from utils import *
-from Parser import Parser
+from Utils.utils import *
+from Utils.dataLoader import *
+from Utils.Parser import *
+
 
 
 class trainer:
@@ -124,7 +125,7 @@ if __name__ == "__main__":
     args = parser.parse()
     args.checkpoint = True
     if args.checkpoint:
-        pretrain = torch.load('./weights/DecomNet.pth')
+        pretrain = torch.load('../weights/DecomNet.pth')
         model.load_state_dict(pretrain)
         print('Model laded from DecomNet.pth')
 

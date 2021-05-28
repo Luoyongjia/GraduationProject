@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
-from dataLoader import *
+from Utils.dataLoader import *
 
 
 SOBEL = np.array([[-1, -2, -1],

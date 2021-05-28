@@ -10,6 +10,6 @@ samplesDir: './samples'
 weightsDir: './checkpoints'
 
 learningRate: 0.0004
-checkpoints: True
+checkpoints: False
 
 noDecom: False

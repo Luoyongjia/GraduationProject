@@ -18,6 +18,7 @@ class Conv2D(nn.Module):
         return self.convRelu(x)
 
 
+
 class MaxPooling2D(nn.Module):
     def __init__(self, kernelSize=2, stride=2):
         super(MaxPooling2D, self).__init__()
@@ -50,3 +51,5 @@ class Concat(nn.Module):
         diffX = xw - yw
         y = F.pad(y, [diffX//2, diffX - diffX//2, diffY//2, diffY - diffY//2])
         return torch.cat((x, y), dim=1)
+
+
