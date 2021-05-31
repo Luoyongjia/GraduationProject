@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 from Utils.dataLoader import *
+from Utils.networks import Vgg16
 
 
 SOBEL = np.array([[-1, -2, -1],
@@ -50,38 +51,20 @@ def gradient(maps, direction, device='cpu', kernel='SOBEL', abs='True'):
     gradNorm = torch.div((gradientOrig - gradMin), (gradMax - gradMin + 0.0001))
     return gradNorm
 
+
 class loss(nn.Module):
     def __init__(self):
-        super().__init__()
+        super(loss, self).__init__()
 
-    def reflectanceSimilarity(self, rLow, rHigh):
+    def reconstructionLoss(self, RLow, ILow3, LLow):
+        reconLossLow = torch.mean(torch.abs(RLow * ILow3 - LLow))
+        return reconLossLow
+
+    def RLoss(self, rLow, rHigh):
         # torch.norm(rLow - rHigh, p=2)
         return torch.mean(torch.abs(rLow - rHigh))
 
-    def illuminationSmoothness(self, I, L, name='low', hook=-1):
-        LGray = 0.299 * L[:, 0, :, :] + 0.587 * L[:, 1, :, :] + 0.114 * L[:, 2, :, :]
-        LGray = LGray.unsqueeze(dim=1)
-
-        IGradientx = gradient(I, "x")
-        LGradientx = gradient(LGray, "x")
-        epsilon = 0.01 * torch.ones_like(LGradientx)
-        denominatorx = torch.max(LGradientx, epsilon)
-        xLoss = torch.abs(torch.div(IGradientx, denominatorx))
-
-        IGradienty = gradient(I, "y")
-        LGradienty = gradient(LGray, "y")
-        epsilon = 0.01 * torch.ones_like(LGradienty)
-        denominatory = torch.max(LGradienty, epsilon)
-        yLoss = torch.abs(torch.div(IGradienty, torch.max(LGradienty, denominatory)))
-
-        mutLoss = torch.mean(xLoss + yLoss)
-
-        if hook > -1:
-            featureMapHook(I, LGray, epsilon, IGradientx + IGradienty, denominatorx + denominatory,
-                           xLoss + yLoss, path=f'./images/samples-features/iluxSmooth{name}epoch{hook}.png')
-        return mutLoss
-
-    def mutalConsistency(self, ILow, IHigh, hook=-1):
+    def edgePreservingLoss(self, ILow, IHigh, hook=-1):
         lowGradientx = gradient(ILow, "x")
         highGradientx = gradient(IHigh, "x")
         MGradientx = lowGradientx + highGradientx
@@ -89,31 +72,42 @@ class loss(nn.Module):
 
         lowGradienty = gradient(ILow, "y")
         highGradienty = gradient(IHigh, "y")
-        MGradienty = lowGradientx + highGradienty
+        MGradienty = lowGradienty + highGradienty
         yLoss = MGradienty * torch.exp(-10 * MGradienty)
 
         mutualLoss = torch.mean(xLoss + yLoss)
 
-        # if hook > -1:
-        #     featureMapHook(ILow, IHigh, lowGradientx+lowGradienty, highGradientx + highGradienty,
-        #             MGradientx + MGradienty, xLoss + yLoss,
-        #                    path=f'./images/samples-features/mutual_consist_epoch{hook}.png')
         return mutualLoss
 
-    def reconstructionError(self, RLow, RHigh, ILow3, IHigh3, LLow, LHigh):
-        reconLossLow = torch.mean(torch.abs(RLow * ILow3 - LLow))
-        reconLossHigh = torch.mean(torch.abs(RHigh * IHigh3 - LHigh))
-        return reconLossLow + reconLossHigh
+    def VggLoss(self, RLow, LHigh):
+        instancenorm = nn.InstanceNorm2d(512, affine=False)
+        # process input images, convert RGB, BGR
+        (RLow_r, RLow_g, RLow_b) = torch.chunk(RLow, 3, dim=1)
+        (LHigh_r, LHigh_g, LHigh_b) = torch.chunk(RLow, 3, dim=1)
+        RLow = torch.cat((RLow_b, RLow_g, RLow_r), dim=1)
+        LHigh = torch.cat((LHigh, LHigh, LHigh), dim=1)
+
+        # load vgg16
+        vgg = Vgg16()
+        vgg.cuda()
+        vgg.load_state_dict(torch.load('../Utils/vgg16.weight'))
+        vgg.eval()
+        for param in vgg.parameters():
+            param.requires_grad = False
+        RLowFeature = vgg(RLow)
+        LHighFeature = vgg(LHigh)
+
+        vggLoss = torch.mean(instancenorm(RLowFeature) - instancenorm(LHighFeature) ** 2)
+
+        return vggLoss
 
     def forward(self, RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=-1):
         ILow3 = torch.cat([ILow, ILow, ILow], dim=1)
-        IHigh3 = torch.cat([IHigh, IHigh, IHigh], dim=1)
 
-        recLoss = self.reconstructionError(RLow, RHigh, ILow3, IHigh3, LLow, LHigh)
-        rsLoss = self.reflectanceSimilarity(RLow, RHigh)
-        isLoss = self.illuminationSmoothness(IHigh, LLow, hook=hook) + \
-                 self.illuminationSmoothness(IHigh, LHigh, name='high', hook=hook)
-        mcLoss = self.mutalConsistency(ILow, IHigh, hook=hook)
+        recLoss = self.reconstructionError(RLow, ILow3, LLow)
+        rLoss = self.RLoss(RLow, LHigh)
+        edgeLoss = self.edgePreservingLoss(ILow, IHigh, hook=hook)
+        vggLoss = self.VggLoss(RLow, LHigh)
 
-        Loss = recLoss + 0.01 * rsLoss + 0.08 * isLoss + 0.1 * mcLoss
+        Loss = 0.3*recLoss + 0.5 * rLoss + 0.2 * edgeLoss + 0.002 * vggLoss
         return Loss
