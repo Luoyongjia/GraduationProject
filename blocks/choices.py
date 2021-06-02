@@ -15,6 +15,8 @@ class identity(nn.Module):
         x = self.conv1(x)
         x = self.activation(x)
 
+        return x
+
 
 class Conv(nn.Module):
     def __init__(self, inChannels, outChannels):
@@ -87,7 +89,7 @@ class dilConv(nn.Module):
             nn.PReLU()
         )
 
-    def forward(self,x):
+    def forward(self, x):
         left = self.left(x)
         right = self.right(x)
 
@@ -122,8 +124,8 @@ class DenseBlock(nn.Module):
 
     def forward(self, x):
         x1 = self.layer1(x)
-        x2 = self.layer2(torch.cat((x, x1),1))
-        x3 = self.layer3(torch.cat((x, x1, x2),1))
+        x2 = self.layer2(torch.cat((x, x1), 1))
+        x3 = self.layer3(torch.cat((x, x1, x2), 1))
 
         x4 = self.channelFusion(x)
 
@@ -157,10 +159,10 @@ class spatialBlock(nn.Module):
     """
     2d attention
     """
-    def __init__(self, inChannel, outChannel, kernel_size=7):
+    def __init__(self, inChannel, outChannel, kernel_size=5):
         super(spatialBlock, self).__init__()
 
-        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, stride=1, padding=3)
+        self.conv = nn.Conv2d(2, 1, kernel_size=kernel_size, stride=1, padding=2)
         self.sigmoid = nn.Sigmoid()
 
         self.channelFusion = nn.Sequential(
@@ -173,6 +175,9 @@ class spatialBlock(nn.Module):
         avgout = torch.mean(x, dim=1, keepdim=True)
         maxout, _ = torch.max(x, dim=1, keepdim=True)
         out = torch.cat([avgout, maxout], dim=1)
-        out = self.sigmoid(self.conv(out))
+        out = self.conv(out)
+        scale = self.sigmoid(out)
+        print(out.size())
+        x_out = x * scale
 
-        return out
+        return x_out

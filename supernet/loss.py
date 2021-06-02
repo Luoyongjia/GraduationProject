@@ -53,8 +53,9 @@ def gradient(maps, direction, device='cpu', kernel='SOBEL', abs='True'):
 
 
 class loss(nn.Module):
-    def __init__(self):
+    def __init__(self, device='cpu'):
         super(loss, self).__init__()
+        self.device = device
 
     def reconstructionLoss(self, RLow, ILow3, LLow):
         reconLossLow = torch.mean(torch.abs(RLow * ILow3 - LLow))
@@ -85,11 +86,12 @@ class loss(nn.Module):
         (RLow_r, RLow_g, RLow_b) = torch.chunk(RLow, 3, dim=1)
         (LHigh_r, LHigh_g, LHigh_b) = torch.chunk(RLow, 3, dim=1)
         RLow = torch.cat((RLow_b, RLow_g, RLow_r), dim=1)
-        LHigh = torch.cat((LHigh, LHigh, LHigh), dim=1)
+        LHigh = torch.cat((LHigh_b, LHigh_g, LHigh_r), dim=1)
 
         # load vgg16
         vgg = Vgg16()
-        vgg.cuda()
+        if self.device == 'cuda':
+            vgg.cuda()
         vgg.load_state_dict(torch.load('../Utils/vgg16.weight'))
         vgg.eval()
         for param in vgg.parameters():
@@ -104,10 +106,11 @@ class loss(nn.Module):
     def forward(self, RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=-1):
         ILow3 = torch.cat([ILow, ILow, ILow], dim=1)
 
-        recLoss = self.reconstructionError(RLow, ILow3, LLow)
+        recLoss = self.reconstructionLoss(RLow, ILow, LLow)
         rLoss = self.RLoss(RLow, LHigh)
         edgeLoss = self.edgePreservingLoss(ILow, IHigh, hook=hook)
         vggLoss = self.VggLoss(RLow, LHigh)
 
         Loss = 0.3*recLoss + 0.5 * rLoss + 0.2 * edgeLoss + 0.002 * vggLoss
-        return Loss
+        lossComponents = {'ReconLoss': recLoss, 'RLoss': rLoss, 'EdgeLoss': edgeLoss, 'VggLoss': vggLoss}
+        return Loss, lossComponents

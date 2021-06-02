@@ -2,6 +2,8 @@ import os
 import time
 import numpy as np
 import cv2
+import joblib
+from sklearn.preprocessing import OneHotEncoder
 
 
 def GCD(a, b):
@@ -51,6 +53,22 @@ def dataAugmentation(image, mode):
     elif mode == 7:
         image = np.rot90(image, k=3)
         return np.flipud(image)
+
+
+def getLatency(cand, numChoice=8, numLayer=8, device='cpu', dataset='MIT'):
+    # to one shot code
+    cand = list(cand) + [i for i in range(numChoice)]
+    cand = np.array(cand).reshape(len(cand), -1)
+    encoder = OneHotEncoder()
+    encoder.fit(cand)
+    cand = encoder.transform(cand[0:numLayer]).toarray
+
+    modelName = 'latency_predictor_' + device + '_' + dataset + '.m'
+    model = joblib.load(modelName)
+    latency = model.predict(cand.reshape(1, -1))
+
+    return latency
+
 
 
 def sample(imgs, split=None, figure_size=(2, 3), img_dim=(336, 500), path=None, num=0):

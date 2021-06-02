@@ -19,7 +19,6 @@ class Conv2D(nn.Module):
         return self.convRelu(x)
 
 
-
 class MaxPooling2D(nn.Module):
     def __init__(self, kernelSize=2, stride=2):
         super(MaxPooling2D, self).__init__()
@@ -115,7 +114,7 @@ class BlurPool(nn.Module):
 
 
 class ResidualDownSample(nn.Module):
-    def __init__(self, inChannels, outChannels, bias=False):
+    def  __init__(self, inChannels, outChannels, bias=False):
         super(ResidualDownSample, self).__init__()
         self.left = nn.Sequential(
             nn.Conv2d(inChannels, inChannels, kernel_size=3, stride=1, padding=1, bias=bias),

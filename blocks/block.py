@@ -1,4 +1,4 @@
-from choices import *
+from blocks.choices import *
 
 
 class ChoiceBlock(nn.Module):

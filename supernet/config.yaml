@@ -1,6 +1,6 @@
-batchSize: 4
+batchSize: 2
 length: 256
-epochs: 10
+epochs: 1
 stepsPerEpoch: 128
 
 printFrequency: 10
@@ -12,4 +12,5 @@ weightsDir: './checkpoints'
 learningRate: 0.0004
 checkpoints: False
 
-noDecom: False
+choiceNum: 8
+choiceLayer: 8

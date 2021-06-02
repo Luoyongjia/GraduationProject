@@ -4,9 +4,9 @@ from blocks.block import ChoiceBlock
 from Utils.baseLayers import *
 
 
-class mNet(nn.Module):
+class HasNet(nn.Module):
     def __init__(self, choiceNum=8, filters=32, activation='lrelu'):
-        super(mNet, self).__init__()
+        super(HasNet, self).__init__()
 
         self.choiceNum = choiceNum
         self.convInput = Conv2D(3, filters)
@@ -27,12 +27,10 @@ class mNet(nn.Module):
         self.R_choice5 = self.buildChoiceBlock(filters*8, filters*4)
         self.R_up3 = convTranspose2D(filters*4, filters*2)
         self.concat3 = Concat()
-        self.R_choice6 = self.buildChoiceBlock(filters*4, filters*4)
-        self.R_choice7 = self.buildChoiceBlock(filters*4, filters*2)
-        self.R_choice8 = self.buildChoiceBlock(filters*2, filters)
+        self.R_choice6 = self.buildChoiceBlock(filters*4, filters*2)
+        self.R_choice7 = self.buildChoiceBlock(filters*2, filters*1)
+        self.R_choice8 = self.buildChoiceBlock(filters, 3)
         self.R_sigmoid = nn.Sigmoid()
-
-
 
         # I
         self.I_conv1 = Conv2D(filters, filters)
@@ -44,7 +42,7 @@ class mNet(nn.Module):
         self.I_conv6 = nn.Conv2d(filters, 3, kernel_size=3, padding=1)
         self.I_sigmoid = nn.Sigmoid()
 
-    def forward(self, x, arch):
+    def forward(self, x, *, arch):
         conv1 = self.convInput(x)
 
         # R
@@ -57,15 +55,16 @@ class mNet(nn.Module):
         R_chose3 = self.R_choice3[arch[2]](R_down3)
         R_up1 = self.R_up1(R_chose3)
         R_concat1 = self.concat1(R_chose2, R_up1)
-        R_chose4 = self.choice4[arch[3]](R_concat1)
+        R_chose4 = self.R_choice4[arch[3]](R_concat1)
         R_up2 = self.R_up2(R_chose4)
         R_concat2 = self.concat2(R_chose1, R_up2)
-        R_chose5 = self.choice5[arch[4]](R_concat2)
+        R_chose5 = self.R_choice5[arch[4]](R_concat2)
         R_up3 = self.R_up3(R_chose5)
         R_concat3 = self.concat2(R_conv1, R_up3)
-        R_chose6 = self.choice6[arch[5]](R_concat3)
-        R_chose7 = self.choice7[arch[6]](R_chose6)
-        R_chose8 = self.choice8[arch[7]](R_chose7)
+        R_chose6 = self.R_choice6[arch[5]](R_concat3)
+        #print(R_up3.size())
+        R_chose7 = self.R_choice7[arch[6]](R_chose6)
+        R_chose8 = self.R_choice8[arch[7]](R_chose7)
         R_out = self.R_sigmoid(R_chose8)
 
         # I
@@ -73,7 +72,7 @@ class mNet(nn.Module):
         I_conv2 = self.I_conv2(I_conv1)
         I_conv3 = self.I_conv3(I_conv2)
         I_concat = self.I_concat(I_conv3, R_chose7)
-        I_conv4 = self.I_ocnv4(I_concat)
+        I_conv4 = self.I_conv4(I_concat)
         I_conv5 = self.I_conv5(I_conv4)
         I_conv6 = self.I_conv6(I_conv5)
         I_out = self.I_sigmoid(I_conv6)

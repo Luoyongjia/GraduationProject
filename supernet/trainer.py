@@ -4,28 +4,25 @@ import torch
 from torch import optim
 import time
 from torch.backends import cudnn
-from torchsummary import summary
 import yaml
 from loss import loss
-from model import mNet
+from model import HasNet
 from Utils.utils import *
 from Utils.dataLoader import *
 from Utils.Parser import *
 
 
-
 class trainer:
-    def __init__(self, config, dataloader, criterion, model, dataloderTest=None, extraModel=None):
+    def __init__(self, config, dataloader, criterion, model):
         self.initialize(config)
         self.dataloader = dataloader
-        self.dataloaderTest = dataloderTest
-        self.loss = criterion
+        self.lossFunction = criterion
         self.model = model
-        self.extraModel = extraModel
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         self.model.to(device=self.device)
         if self.device == 'cuda':
             torch.backends.cudnn.benchmark = True
+            self.lossFunction = criterion(device=self.device)
 
     def initialize(self, config):
         self.bachSize = config['batchSize']
@@ -37,93 +34,110 @@ class trainer:
         self.weightsDir = config['weightsDir']
         self.samplesDir = config['samplesDir']
         self.learningRate = config['learningRate']
-        self.noDecom = config['noDecom']
+        self.choiceNum = config['choiceNum']
+        self.choiceLayer = config['choiceLayer']
 
-    def train(self):
+    def train(self, exp_no=0, useSLC=False):
         print(f'Using device {self.device}')
         self.model.to(device=self.device)
-        summary(self.model, input_size=(3, 48, 48))
 
         # self.model.to(device=self.device)
         # cudnn.benchmark = True
 
         optimizer = optim.Adam(self.model.parameters(), lr=self.learningRate)
         scheduler = optim.lr_scheduler.ExponentialLR(optimizer, gamma=0.997)
+
         try:
+            trainLoss = []
+            trainReconLoss = []
+            trainRLoss = []
+            trainEdgeLoss = []
+            trainVggLoss = []
+
+            latencyThresholds = [100, 10, 9, 8, 7.5]
+            binSize = self.epochs // len(latencyThresholds)
+
             for iter in range(self.epochs):
-                epochLoss = 0
+                trainLossSum = 0
+                trainReconLossSum = 0
+                trainRLossSum = 0
+                trainEdgeLossSum = 0
+                trainVggLossSum = 0
+
                 idx = 0
-                hookNumber = -1
-                iterStartTime = time.time()
-                for LLowTensor, LHighTensor, name in self.dataloader:
-                    LLow = LLowTensor.to(self.device)
-                    LHigh = LHighTensor.to(self.device)
-                    RLow, ILow = self.model(LLow)
-                    RHigh, IHigh = self.model(LHigh)
-                    if idx % self.printFrequency == 0:
-                        hookNumber = -1
-                    loss = self.loss(RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=hookNumber)
-                    hookNumber = -1
-                    if idx % 2 == 0:
-                        print(f'iter:{iter + 1}_{idx}\t average loss:{loss.item():.6f}')
+                hookNum = -1
+                startTime = time.time()
+
+                for LLow, LHigh, name in self.dataloader:
+                    arch = [np.random.randint(self.choiceNum) for _ in range(self.choiceLayer)]
+
+                    # calculate the latency
+                    if useSLC is True:
+                        archLatency = getLatency(arch, numChoice=self.choiceNum, numLayer=self.choiceLayer)
+                        archLatencyThresholds = latencyThresholds[max(iter // binSize, len(latencyThresholds) - 1)]
+                        while archLatency > archLatencyThresholds and np.random.randn(1) > 0.3:
+                            arch = [np.random.randint(self.choiceNum) for _ in range(self.choiceLayer)]
+                            archLatency = getLatency(arch)
+                    #arch = [1, 1, 1, 1, 1, 1, 1, 1]
+                    #print(arch)
+                    LLow = LLow.to(self.device)
+                    LHigh = LHigh.to(self.device)
+                    RLow, ILow = self.model(LLow, arch=arch)
+                    RHigh, IHigh = self.model(LHigh, arch=arch)
+
+                    loss, lossComponents = self.lossFunction(RLow, RHigh, ILow, IHigh, LLow, LHigh)
                     optimizer.zero_grad()
                     loss.backward()
                     optimizer.step()
+
+                    if idx % 8 == 0:
+                        print(f"iter: {iter}_{idx}\t average_loss: {loss.item():.6f}")
                     idx += 1
 
-                if (iter+1) % self.printFrequency == 0:
-                    self.test(iter + 1, plotDir='./images/DecomSample')
+                    # compute loss
+                    trainLossSum += loss
+                    trainReconLossSum += lossComponents['ReconLoss'].item()
+                    trainRLossSum += lossComponents['RLoss'].item()
+                    trainEdgeLossSum += lossComponents['EdgeLoss'].item()
+                    trainVggLossSum += lossComponents['VggLoss'].item()
 
-                if (iter+1) % self.saveFrequency == 0:
-                    torch.save(self.model.state_dict(), './weights/DecomNet.pth')
-                    log("Weight has saved as 'DecomNet.pth'")
+                # save loss
+                trainLoss.append(trainLossSum)
+                trainReconLoss.append(trainReconLossSum)
+                trainRLoss.append(trainRLossSum)
+                trainEdgeLoss.append(trainEdgeLossSum)
+                trainVggLoss.append(trainVggLossSum)
 
-                scheduler.step()
-                iterEndTime = time.time()
-                log(f"Time taken: {iterEndTime - iterStartTime:.3f} seconds\t lr={scheduler.get_lr()[0]:.6f}")
+                # save weight
+                if iter % self.saveFrequency:
+                    if not os.path.exists('./weights/{}'.format(exp_no)):
+                        os.mkdir('./weights/{}'.format(exp_no))
+                    if not os.path.exists('./weights/{}/supernet'.format(exp_no)):
+                        os.mkdir('./weights/{}/supernet'.format(exp_no))
+                    if not os.path.exists('./weights/{}/supernet/model'.format(exp_no)):
+                        os.mkdir('./weights/{}/supernet/model'.format(exp_no))
+
+                    torch.save(self.model.state_dict(),
+                               './weights/{}/supernet/model/checkpoint-{}.pth'.format(exp_no, iter))
+                    torch.save(self.model.state_dict(),
+                               './weights/{}/supernet/model/checkpoint-latest.pth'.format(exp_no))
+
         except KeyboardInterrupt:
-            torch.save(self.model.state_dict(), 'INTERRUPTED_Decom.pth')
+            torch.save(self.model.state_dict(), 'INTERRUPTED_decom.pth')
             log('Saved interrupt decom')
             try:
                 sys.exit(0)
             except SystemExit:
                 os._exit(0)
 
-    def test(self, epoch=-1, plotDir='/images/samples'):
-        self.model.eval()
-        hook = 0
-        for LLowTensor, LHighTensor, name in self.dataloaderTest:
-            LLow = LLowTensor.to(self.device)
-            LHigh = LHighTensor.to(self.device)
-            RLow, ILow = self.model(LLow)
-            RHigh, IHigh = self.model(LHigh)
-
-            if epoch % self.printFrequency == 0:
-                loss = self.loss(RLow, RHigh, ILow, IHigh, LLow, LHigh, hook=hook)
-                hook += 1
-                loss = 0
-
-            RLownp = RLow.detach().cpu().numpy()[0]
-            RHighnp = RHigh.detach().cpu().numpy()[0]
-            ILownp = ILow.detach().cpu().numpy()[0]
-            IHighnp = IHigh.detach().cpu().numpy()[0]
-            LLownp = LLow.detach().cpu().numpy()[0]
-            LHighnp = LHigh.detach().cpu().numpy()[0]
-            sampleImages = np.concatenate((RLownp, ILownp, LLownp, RHighnp, IHighnp, LHighnp), axis=0)
-
-            filepath = os.path.join(plotDir, f'{name[0]}_epoch_{epoch}.png')
-            splitPoint = [0, 3, 4, 7, 10, 11, 14]
-            imgDim = ILownp.shape[1:]
-            sample(sampleImages, split=splitPoint, figure_size=(2, 3), img_dim=imgDim, path=filepath, num=epoch)
-
 
 if __name__ == "__main__":
     criterion = loss()
-    model = mNet()
+    model = HasNet()
 
     parser = Parser()
     args = parser.parse()
-    args.checkpoint = True
+    args.checkpoint = False
     if args.checkpoint:
         pretrain = torch.load('../weights/DecomNet.pth')
         model.load_state_dict(pretrain)
@@ -148,9 +162,7 @@ if __name__ == "__main__":
     vailLoader = DataLoader(vailData, batch_size=1)
     testLoader = DataLoader(testData, batch_size=1)
 
-    trainer = trainer(config, trainLoader, criterion, model, dataloderTest=vailLoader)
+    trainer = trainer(config, trainLoader, criterion, model)
 
     if args.mode == 'train':
         trainer.train()
-    else:
-        trainer.test()
