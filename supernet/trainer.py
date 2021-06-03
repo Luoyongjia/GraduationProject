@@ -78,8 +78,7 @@ class trainer:
                         while archLatency > archLatencyThresholds and np.random.randn(1) > 0.3:
                             arch = [np.random.randint(self.choiceNum) for _ in range(self.choiceLayer)]
                             archLatency = getLatency(arch)
-                    #arch = [1, 1, 1, 1, 1, 1, 1, 1]
-                    #print(arch)
+
                     LLow = LLow.to(self.device)
                     LHigh = LHigh.to(self.device)
                     RLow, ILow = self.model(LLow, arch=arch)

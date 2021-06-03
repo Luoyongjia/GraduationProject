@@ -62,7 +62,6 @@ class HasNet(nn.Module):
         R_up3 = self.R_up3(R_chose5)
         R_concat3 = self.concat2(R_conv1, R_up3)
         R_chose6 = self.R_choice6[arch[5]](R_concat3)
-        #print(R_up3.size())
         R_chose7 = self.R_choice7[arch[6]](R_chose6)
         R_chose8 = self.R_choice8[arch[7]](R_chose7)
         R_out = self.R_sigmoid(R_chose8)

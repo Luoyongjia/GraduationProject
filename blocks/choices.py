@@ -140,19 +140,22 @@ class channelAttention(nn.Module):
     """
     def __init__(self, inChannels, outChannels, kernel_size=3, reduction=64,):
         super(channelAttention, self).__init__()
-        self.conv1 = nn.Conv2d(inChannels, outChannels, kernel_size=3, stride=1, bias=False)
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(inChannels, outChannels, kernel_size=3, stride=1, bias=False, padding=1),
+            nn.PReLU())
         self.avg_pool = nn.AdaptiveAvgPool2d(1)
         # channel based padding size
         self.conv2 = nn.Conv1d(1, 1, kernel_size=kernel_size, padding=(kernel_size - 1) // 2, bias=False)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        x = self.conv1(x)
         y = self.avg_pool(x)
         y = self.conv2(y.squeeze(-1).transpose(-1, -2)).transpose(-1, -2).unsqueeze(-1)
         y = self.sigmoid(y)
+        y = x * y.expand_as(x)
+        y = self.conv1(y)
 
-        return x*y.expand_as(x)
+        return y
 
 
 class spatialBlock(nn.Module):
@@ -177,7 +180,6 @@ class spatialBlock(nn.Module):
         out = torch.cat([avgout, maxout], dim=1)
         out = self.conv(out)
         scale = self.sigmoid(out)
-        print(out.size())
         x_out = x * scale
 
         return x_out
