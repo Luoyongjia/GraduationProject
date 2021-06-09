@@ -4,6 +4,7 @@ import numpy as np
 import cv2
 import joblib
 from sklearn.preprocessing import OneHotEncoder
+import logging
 
 
 def GCD(a, b):
@@ -22,6 +23,23 @@ def log(string):
     :return:
     """
     print(time.strftime('%H:%M:%S'), ">>", string)
+
+
+def log1(version):
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))[:-4]
+
+    logPath = '../log/'
+    logName = logPath + rq + version + '.log'
+    fh = logging.FileHandler(logName, mode='a')
+    fh.setLevel(logging.DEBUG)
+
+    formatter = logging.Formatter("%(asctime)s - %(filename)s[line:%(lineno)d] - %(levelname)s: %(message)s")
+    fh.setFormatter(formatter)
+
+    logger.addHandler(fh)
+    return logger
 
 
 def dataAugmentation(image, mode):
@@ -68,7 +86,6 @@ def getLatency(cand, numChoice=8, numLayer=8, device='cpu', dataset='MIT'):
     latency = model.predict(cand.reshape(1, -1))
 
     return latency
-
 
 
 def sample(imgs, split=None, figure_size=(2, 3), img_dim=(336, 500), path=None, num=0):

@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from blocks.block import ChoiceBlock
+from Model.blocks.block import ChoiceBlock
 from Utils.baseLayers import *
 
 

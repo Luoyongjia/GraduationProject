@@ -1,0 +1,11 @@
+maxEpochs: 20
+topSapleNum: 10
+population: 50
+
+mProb: 0.1
+crossoverNum: 25
+mutationNum: 25
+
+latencyLimit: 10
+exp_no: 0
+reverse: 1

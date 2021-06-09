@@ -15,6 +15,7 @@ ROBERT = np.array([[0, 0],
 SOBEL = torch.Tensor(SOBEL)
 ROBERT = torch.Tensor(ROBERT)
 
+
 def featureMapHook(*args, path=None):
     featureMaps = []
     for feature in args:
@@ -26,6 +27,7 @@ def featureMapHook(*args, path=None):
     num = fShape[0]
     shape = fShape[1:]
     sample(fMap, figure_size=(2, num//2), img_dim=shape, path=path)
+
 
 # 提取一阶导数算子滤波图
 def gradient(maps, direction, device='cpu', kernel='SOBEL', abs='True'):
