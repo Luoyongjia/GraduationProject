@@ -11,7 +11,7 @@ from Utils.utils import *
 from Utils.dataLoader import *
 from Utils.Parser import Parser
 
-logger = log1('test')
+logger = log1('test', 'supernet')
 
 class trainer:
     def __init__(self, config, dataloader, criterion, model):
@@ -35,8 +35,9 @@ class trainer:
         self.learningRate = config['learningRate']
         self.choiceNum = config['choiceNum']
         self.choiceLayer = config['choiceLayer']
+        self.exp_no = config['exp_no']
 
-    def train(self, exp_no=0, useSLC=False):
+    def train(self, exp_no=0, useSLC=True):
         logger.info(f'Using device {self.device}')
         self.model.to(device=self.device)
 
@@ -54,6 +55,7 @@ class trainer:
 
             latencyThresholds = [100, 10, 9, 8, 7.5]
             binSize = self.epochs // len(latencyThresholds)
+            binSize = 1
 
             for iter in range(self.epochs):
                 trainLossSum = 0
@@ -71,7 +73,7 @@ class trainer:
                     # calculate the latency
                     if useSLC is True:
                         archLatency = getLatency(arch, numChoice=self.choiceNum, numLayer=self.choiceLayer)
-                        archLatencyThresholds = latencyThresholds[max(iter // binSize, len(latencyThresholds) - 1)]
+                        archLatencyThresholds = latencyThresholds[min(iter // binSize, len(latencyThresholds) - 1)]
                         while archLatency > archLatencyThresholds and np.random.randn(1) > 0.3:
                             arch = [np.random.randint(self.choiceNum) for _ in range(self.choiceLayer)]
                             archLatency = getLatency(arch)
@@ -109,17 +111,16 @@ class trainer:
 
                 # save weight
                 if iter % self.saveFrequency == 0:
-                    if not os.path.exists(f'../weights/supernet'):
-                        os.mkdir(f'../weights/supernet')
-                    if not os.path.exists(f'../weights/supernet/{exp_no}'):
-                        os.mkdir(f'../weights/supernet/{exp_no}')
+                    if not os.path.exists(f'../weights/{self.exp_no}'):
+                        os.mkdir(f'../weights/{self.exp_no}')
+                    if not os.path.exists(f'../weights/{self.exp_no}/supernet'):
+                        os.mkdir(f'../weights/{self.exp_no}/supernet')
 
                     torch.save(self.model.state_dict(),
-                               f'../weights/supernet/checkpoint-{iter}.pth')
+                               f'../weights/{self.exp_no}/supernet/checkpoint-{iter}.pth')
 
             torch.save(self.model.state_dict(),
-                       f'../weights/supernet/checkpoint-latest.pth')
-
+                       f'../weights/{self.exp_no}/supernet/checkpoint-latest.pth')
 
         except KeyboardInterrupt:
             torch.save(self.model.state_dict(), 'INTERRUPTED_decom.pth')
@@ -150,7 +151,7 @@ if __name__ == "__main__":
     # vailPath = '/root/data/lyj/data/MIT5K/validation'
     # testPath = '/root/data/lyj/data/MIT5K/test'
     trainPath = '/Users/luoyongjia/Research/Data/MIT/train'
-    vailPath = '/Users/luoyongjia/Research/Data/MIT/vailPath'
+    vailPath = '/Users/luoyongjia/Research/Data/MIT/validation'
     testPath = '/Users/luoyongjia/Research/Data/MIT/train'
     trainListPath = buildDatasetListTxt(trainPath)
     vailListPath = buildDatasetListTxt(vailPath)

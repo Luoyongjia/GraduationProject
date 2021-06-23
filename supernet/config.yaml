@@ -10,6 +10,7 @@ weightsDir: '../weights/supernet/checkpoint-latest.pth'
 
 learningRate: 0.0004
 checkpoints: False
+exp_no: 0
 
 choiceNum: 8
 choiceLayer: 8

@@ -25,12 +25,14 @@ def log(string):
     print(time.strftime('%H:%M:%S'), ">>", string)
 
 
-def log1(version):
+def log1(version, species):
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
     rq = time.strftime('%Y%m%d%H%M', time.localtime(time.time()))[:-4]
 
-    logPath = '../log/'
+    if not os.path.exists(f'../log/{species}'):
+        os.mkdir(f'../log/{species}')
+    logPath = f'../log/{species}/'
     logName = logPath + rq + version + '.log'
     fh = logging.FileHandler(logName, mode='a')
     fh.setLevel(logging.DEBUG)
@@ -79,9 +81,11 @@ def getLatency(cand, numChoice=8, numLayer=8, device='cpu', dataset='MIT'):
     cand = np.array(cand).reshape(len(cand), -1)
     encoder = OneHotEncoder()
     encoder.fit(cand)
-    cand = encoder.transform(cand[0:numLayer]).toarray
+    cand = encoder.transform(cand[0:numLayer]).toarray()
+    cand = cand.flatten()
 
-    modelName = 'latency_predictor_' + device + '_' + dataset + '.m'
+    # modelName = 'latency_predictor_' + device + '_' + dataset + '.m'
+    modelName = '/Users/luoyongjia/Research/Code/myVersion/Utils/latency_predictor.m'
     model = joblib.load(modelName)
     latency = model.predict(cand.reshape(1, -1))
 

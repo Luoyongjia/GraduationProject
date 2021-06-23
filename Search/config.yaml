@@ -1,11 +1,13 @@
-maxEpochs: 20
-topSapleNum: 10
-population: 50
+maxEpochs: 1
+topSampleNum: 2
+population: 4
 
 mProb: 0.1
-crossoverNum: 25
-mutationNum: 25
+crossoverNum: 2
+mutationNum: 2
 
 latencyLimit: 10
 exp_no: 0
 reverse: 1
+length: 256
+batchSize: 2
