@@ -1,0 +1,14 @@
+exp_no: 0
+batchSize: 2
+length: 256
+epochs: 2
+
+printFrequency: 15
+saveFrequency: 1
+
+learningRate: 0.001
+
+archDir: '../weights/0/search/checkpoint.pth.tar'
+
+checkPoint: False
+checkPointDir: '../weights/0/retrain/checkpoint-latest.pth'

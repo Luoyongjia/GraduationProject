@@ -6,7 +6,7 @@ stepsPerEpoch: 128
 printFrequency: 10
 saveFrequency: 1
 
-weightsDir: '../weights/supernet/checkpoint-latest.pth'
+weightsDir: '../weights/Supernet/checkpoint-latest.pth'
 
 learningRate: 0.0004
 checkpoints: False

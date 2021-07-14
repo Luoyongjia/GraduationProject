@@ -5,13 +5,14 @@ from torch import optim
 import time
 from torch.backends import cudnn
 import yaml
-from loss import loss
-from Model.model import HasNet
+from Model.model_search import HasNet
+from Model.loss import loss
 from Utils.utils import *
 from Utils.dataLoader import *
 from Utils.Parser import Parser
 
-logger = log1('test', 'supernet')
+logger = log1('test', 'Supernet')
+
 
 class trainer:
     def __init__(self, config, dataloader, criterion, model):
@@ -26,8 +27,6 @@ class trainer:
             self.lossFunction = criterion(device=self.device)
 
     def initialize(self, config):
-        self.bachSize = config['batchSize']
-        self.length = config['length']
         self.epochs = config['epochs']
         self.printFrequency = config['printFrequency']
         self.saveFrequency = config['saveFrequency']
@@ -113,18 +112,16 @@ class trainer:
                 if iter % self.saveFrequency == 0:
                     if not os.path.exists(f'../weights/{self.exp_no}'):
                         os.mkdir(f'../weights/{self.exp_no}')
-                    if not os.path.exists(f'../weights/{self.exp_no}/supernet'):
-                        os.mkdir(f'../weights/{self.exp_no}/supernet')
+                    if not os.path.exists(f'../weights/{self.exp_no}/Supernet'):
+                        os.mkdir(f'../weights/{self.exp_no}/Supernet')
 
                     torch.save(self.model.state_dict(),
-                               f'../weights/{self.exp_no}/supernet/checkpoint-{iter}.pth')
+                               f'../weights/{self.exp_no}/Supernet/checkpoint-{iter}.pth')
 
             torch.save(self.model.state_dict(),
-                       f'../weights/{self.exp_no}/supernet/checkpoint-latest.pth')
+                       f'../weights/{self.exp_no}/Supernet/checkpoint-latest.pth')
 
         except KeyboardInterrupt:
-            torch.save(self.model.state_dict(), 'INTERRUPTED_decom.pth')
-            logger.error('Saved interrupt decom')
             try:
                 sys.exit(0)
             except SystemExit:
@@ -137,10 +134,10 @@ if __name__ == "__main__":
 
     parser = Parser()
     args = parser.parse()
-    args.config = "../supernet/config.yaml"
+    args.config = "../Supernet/config.yaml"
     args.checkpoint = False
     if args.checkpoint:
-        pretrain = torch.load('../weights/supernet/checkpoint-latest.pth')
+        pretrain = torch.load('../weights/Supernet/checkpoint-latest.pth')
         model.load_state_dict(pretrain)
         logger.info('Model laded from DecomNet.pth')
 
@@ -157,7 +154,6 @@ if __name__ == "__main__":
     vailListPath = buildDatasetListTxt(vailPath)
     testListPath = buildDatasetListTxt(testPath)
     logger.info("Building dataset...")
-    BatchSize = 2
     trainData = loadDataset(trainPath, trainListPath, cropSize=config['length'], toRAM=True)
     vailData = loadDataset(vailPath, vailListPath, cropSize=config['length'], toRAM=True, training=False)
     testData = loadDataset(testPath, testListPath, cropSize=config['length'], toRAM=False, training=False)

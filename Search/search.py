@@ -6,7 +6,7 @@ import torch
 import yaml
 from tqdm import tqdm
 from Search.evaluate import evaluate
-from Model.model import HasNet
+from Model.model_search import HasNet
 from Utils.utils import *
 from Utils.Parser import Parser
 
@@ -39,7 +39,7 @@ class EvolutionSearcher(object):
         self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
         if self.device == 'cuda':
             self.model.cuda()
-        self.model.load_state_dict(torch.load(f'../weights/{self.exp_no}/supernet/checkpoint-latest.pth', map_location=torch.device('cpu')))
+        self.model.load_state_dict(torch.load(f'../weights/{self.exp_no}/Supernet/checkpoint-latest.pth', map_location=torch.device('cpu')))
 
         self.initialArch = initialArch
         self.layerNum = 8
@@ -208,6 +208,8 @@ class EvolutionSearcher(object):
         self.epoch = info['epoch']
 
     def search(self):
+        log(f'Using device {self.device}.')
+        logger(f'Using device {self.device}.')
         log(f'population = {self.population}, topSample = {self.k}, mutation = {self.mutationNum},'
             f'crossover = {self.crossoverNum}, maxEpochs = {self.maxEpochs}')
         logger.info(f'population = {self.population}, topSample = {self.k}, mutation = {self.mutationNum},'
@@ -251,7 +253,7 @@ if __name__ == "__main__":
 
     model = HasNet()
     if args.checkpoint:
-        paramSupernet = torch.load(f'../weights/{config["exp_no"]}/supernet/checkpoint-latest.pth', map_location=torch.device('cpu'))
+        paramSupernet = torch.load(f'../weights/{config["exp_no"]}/Supernet/checkpoint-latest.pth', map_location=torch.device('cpu'))
         model.load_state_dict(paramSupernet)
         log('Supernet load finished.')
         logger.info('Supernet load finished')
